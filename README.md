@@ -452,7 +452,7 @@ If you find this work useful, please cite:
 ```bibtex
 @article{kamel2026statfm,
   title={STA-TFM: Spatio-Temporal Aggregation Across Views TransForMer for Pose Estimation},
-  author={Kamel, Mena and Won, Natalie and Sarangi, Amrut and Jager, Sven and Planas, Albert Pla},
+  author={Kamel, Mena and Won, Natalie and Sarangi, Amrut and Jager, Sven and Pla Planas, Albert},
   journal={arXiv preprint arXiv:2609.24482},
   year={2026}
 }
