@@ -1,0 +1,50 @@
+connectivities.default:
+  root:
+    - RHip
+    - LHip
+    - torso
+  RHip:
+    - root
+    - RKnee
+  RKnee:
+    - RHip
+    - RAnkle
+  RAnkle:
+    - RKnee
+  LHip:
+    - root
+    - LKnee
+  LKnee:
+    - LHip
+    - LAnkle
+  LAnkle:
+    - LKnee
+  torso:
+    - root
+    - neck
+  neck:
+    - torso
+    - head
+    - LShoulder
+    - RShoulder
+  nose:
+    - head
+  head:
+    - neck
+    - nose
+  LShoulder:
+    - neck
+    - LElbow
+  LElbow:
+    - LShoulder
+    - LWrist
+  LWrist:
+    - LElbow
+  RShoulder:
+    - neck
+    - RElbow
+  RElbow:
+    - RShoulder
+    - RWrist
+  RWrist:
+    - RElbow

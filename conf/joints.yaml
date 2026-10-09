@@ -1,0 +1,98 @@
+# Joint evaluation masks per dataset.
+# true  = include this joint in evaluation metrics
+# false = exclude this joint from evaluation metrics
+
+dhp19:
+  root: false
+  RHip: true
+  RKnee: true
+  RAnkle: true
+  LHip: true
+  LKnee: true
+  LAnkle: true
+  torso: false
+  neck: false
+  nose: false
+  head: true
+  LShoulder: true
+  LElbow: true
+  LWrist: true
+  RShoulder: true
+  RElbow: true
+  RWrist: true
+
+haa4d:
+  root: true
+  RHip: true
+  RKnee: true
+  RAnkle: true
+  LHip: true
+  LKnee: true
+  LAnkle: true
+  torso: true
+  neck: true
+  nose: true
+  head: true
+  LShoulder: true
+  LElbow: true
+  LWrist: true
+  RShoulder: true
+  RElbow: true
+  RWrist: true
+
+blendmimic3d:
+  root: true
+  RHip: true
+  RKnee: true
+  RAnkle: true
+  LHip: true
+  LKnee: true
+  LAnkle: true
+  torso: true
+  neck: true
+  nose: true
+  head: true
+  LShoulder: true
+  LElbow: true
+  LWrist: true
+  RShoulder: true
+  RElbow: true
+  RWrist: true
+
+cmu:
+  root: true
+  RHip: true
+  RKnee: true
+  RAnkle: true
+  LHip: true
+  LKnee: true
+  LAnkle: true
+  torso: true
+  neck: true
+  nose: true
+  head: true
+  LShoulder: true
+  LElbow: true
+  LWrist: true
+  RShoulder: true
+  RElbow: true
+  RWrist: true
+
+totalcapture:
+  root: true
+  RHip: true
+  RKnee: true
+  RAnkle: true
+  LHip: true
+  LKnee: true
+  LAnkle: true
+  torso: true
+  neck: true
+  nose: true
+  head: true
+  LShoulder: true
+  LElbow: true
+  LWrist: true
+  RShoulder: true
+  RElbow: true
+  RWrist: true

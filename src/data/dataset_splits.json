@@ -1,0 +1,38 @@
+{
+  "haa4d": {
+    "source_dir": "datasets/haa4d/synthetic",
+    "train": ["ALS_IceBucket_Challenge", "abseiling", 
+        "add_new_car_tire", "adjusting_glasses", "air_drumming", "applauding", "applying_cream", "archery", "arm_wave", 
+        "arm_wrestling", "atlatl_throw", "axe_throwing", "backflip", "backward_roll", "badminton_overswing", 
+        "badminton_serve", "badminton_underswing", "balancebeam_flip", "balancebeam_spin", "balancebeam_walk", 
+        "baseball_bunt", "baseball_catch_groundball", "baseball_pitch", "baseball_swing", "basketball_dribble", 
+        "basketball_jabstep", "basketball_layup", "basketball_shoot", "battle-rope_jumping-jack", "battle-rope_power-slam", 
+        "battle-rope_rainbow", "battle-rope_russian-twist", "battle-rope_sideplank", "battle-rope_snake", "battle-rope_wave", 
+        "beer_pong_throw", "bench_dip", "bending_back", "bowing_waist", "brushing_floor", "burpee", "config.yaml", 
+        "fish-hunting_hold", "floss_dance", "gym_squat", "jumping_jack", "play_banjo", "play_cello", "play_clarinet", 
+        "play_cymbals", "play_diabolo", "play_doublebass", "play_erhu", "play_gong", "play_grandpiano", "play_guitar", 
+        "play_harp", "play_hulahoop", "play_hulusi", "play_kendama", "play_leaf-flute", "play_lute", "play_maracas", 
+        "play_melodic", "play_noseflute", "play_ocarina", "play_otamatone", "play_panpipe", "play_piccolo", 
+        "play_recorder", "play_sanxian", "play_saw", "play_saxophone", "play_serpent", "play_sheng", "play_sitar", 
+        "play_suona", "play_tambourine", "play_thereminvox", "play_timpani", "play_triangle", "play_trombone", "play_trumpet", 
+        "play_ukulele", "play_viola", "play_violin", "play_xylophone", "play_yangqin", "play_yoyo", "playing_bass_drum", "playing_cajon_drum", 
+        "playing_rubiks_cube", "playing_seesaw", "playing_snare_drum", "playing_taiko_drum", "pottery_wheel", "pull_ups", "punching_sandbag", 
+        "punching_speedbag", "push_car", "push_wheelchair", "push_wheelchair_alone", "putting_scarf_on", "quadruped_hip-extension", 
+        "racewalk_walk", "read_newspaper", "reading_book", "rescue_breathing", "sandboarding_forward", "side_lunge", "water_skiing", 
+        "watering_plants", "wear_face_mask", "wear_helmet", "weightlifting_hang", "weightlifting_overhead", "weightlifting_stand", 
+        "whipping", "whistle_one_hand", "workout_chest-pull", "workout_crunch", "yawning", "yoga_bridge", "yoga_cat", "yoga_dancer",
+        "yoga_firefly", "yoga_fish", "yoga_gate", "yoga_locust", "yoga_lotus", "yoga_pigeon", "yoga_tree", "yoga_updog"
+    ],
+    "test": ["CPR", "air_guitar", "air_hocky", "alligator_wrestling", "balancebeam_jump", "balancebeam_rotate", "bandaging", 
+        "baseball_catch_catcher", "basketball_pass", "climb_stair", "play_accordian", "play_bagpipes", "play_bangu", "play_castanets", 
+        "play_cornett", "play_handpan", "play_harmonica", "playing_conga_drum", "playing_nunchucks", "pouring_wine", "situp", "whistle_two_hands",
+        "yoga_triangle"]
+  },
+  "dhp19": {
+    "source_dir": "datasets/dhp19/synthetic",
+    "train": [
+      "S10", "S11",  "S13",  "S14",  "S15",  "S16", "S17", "S2", "S3", "S5", "S6", "S7", "S8", "S9"
+    ],
+    "test": ["S12", "S1", "S4"]
+  }
+}
