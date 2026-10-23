@@ -16,7 +16,7 @@ Monocular 3D human pose estimation (HPE) remains challenging due to depth ambigu
 
 - [Quick start](#quick-start)
 - [1. Installation](#1-installation)
-- [2. Download pre-trained weights](#2-download-pre-trained-weights)
+- [2. Download the supplementary material](#2-download-the-supplementary-material-weights-data-results)
 - [3. Reproducing the paper (DHP19 + HAA4D)](#3-reproducing-the-paper-dhp19--haa4d)
 - [4. Robustness experiments](#4-robustness-experiments)
 - [5. Visualization](#5-visualization)
@@ -45,7 +45,7 @@ python -m src.data.split_dataset --dataset union --output_dir datasets/haa4d_dhp
 python -m src.data.split_dataset --dataset dhp19 --output_dir datasets/dhp19/split
 python -m src.data.split_dataset --dataset haa4d --output_dir datasets/haa4d/split
 
-# Train (or skip and use the released checkpoint from Zenodo)
+# Train (or skip and use the released checkpoint, see §2)
 python -m src.train
 
 # Inference + evaluation on DHP19
@@ -107,22 +107,56 @@ The tests are CPU-only and need no datasets or weights; they check synthetic dat
 
 ---
 
-## 2. Download pre-trained weights
+## 2. Download the supplementary material (weights, data, results)
 
-Download `STA-TFM Supplementary Material.zip` (2.7 GB) from Zenodo: https://doi.org/10.5281/zenodo.22832620. It contains:
-- `dstformer_weights.pth`: pre-trained DSTformer (MotionBERT) backbone, needed for both training and inference
-- STA-TFM checkpoints trained on synthetic HAA4D + DHP19
-- Sample output videos and baseline comparison results
-
-Copy the weights into `weights/`:
+Download `STA-TFM Supplementary Material.zip` (2.7 GB, MD5 `d1b0e74eb128ff1cc5165b01a59c9b7b`) from Zenodo: https://doi.org/10.5281/zenodo.22832620
 
 ```
-weights/
-├── dstformer_weights.pth            # default --dstformer_path for train/infer
-└── <sta-tfm-checkpoint>.pth         # pass as --fusion_head_ckpt
+sta-tfm-training/
+├── checkpoints/motionbert/dstformer_weights.pth      # pre-trained DSTformer backbone (needed for train + infer)
+├── checkpoints/sta-tfm/sta-tfm_haa4d-dhp19_best.pth  # STA-TFM trained on synthetic HAA4D + DHP19 (paper model)
+├── checkpoints/mpl/mpl_haa4d-dhp19_best.pth.tar      # MPL baseline
+└── datasets/dhp19_haa4d_dataset.zip                  # the exact synthetic train/test data used in the paper
+sta-tfm-results/<method>/<method>_<dataset>.zip       # published predictions (STA-TFM and baselines)
+sta-tfm-qualitative-assessment/*.mp4                  # TotalCapture overlay videos
 ```
+
+Set it up:
+
+```bash
+unzip "STA-TFM Supplementary Material.zip" -d zenodo
+cp zenodo/sta-tfm-training/checkpoints/motionbert/dstformer_weights.pth weights/
+cp zenodo/sta-tfm-training/checkpoints/sta-tfm/sta-tfm_haa4d-dhp19_best.pth weights/
+unzip zenodo/sta-tfm-training/datasets/dhp19_haa4d_dataset.zip -d datasets/haa4d_dhp19_union/split   # -> train/ test/
+```
+
+The published dataset is already split into 3,101 train and 556 test files. The test set contains DHP19 subjects S1, S4 and S12 plus 23 held-out HAA4D actions. It matches [conf/dataset_splits.json](conf/dataset_splits.json).
 
 > Checkpoints trained on CMU Panoptic and TotalCapture cannot be shared because of dataset licensing.
+
+### Run the released checkpoint on the published test data
+
+The published dataset was produced by an earlier version of the pipeline. Its files contain raw pixel `keypoints_2d` and normalised `keypoints_3d`, but no `keypoints_2d_processed` or `gt_world`. The released checkpoint expects those pixels divided by image width and height, which is `--norm_2d 01`:
+
+```bash
+U=datasets/haa4d_dhp19_union/split/test
+mkdir -p datasets/dhp19/split/test datasets/haa4d/split/test
+find $U -name 'S[0-9]*_*.npz'   -exec cp {} datasets/dhp19/split/test/ \;      # DHP19: S<subject>_*
+find $U -name '*.npz' ! -name 'S[0-9]*_*' -exec cp {} datasets/haa4d/split/test/ \;
+
+for ds in dhp19 haa4d; do
+  python -m src.infer --fusion_head_ckpt weights/sta-tfm_haa4d-dhp19_best.pth --norm_2d 01 \
+      --input datasets/$ds/split/test --output results/$ds
+done
+```
+
+> **Note:** the released checkpoint and the current data pipeline use different 2D input formats.
+> - The released checkpoint expects raw pixels divided by image width and height.
+> - Data generated with the current pipeline ([§3.2](#32-generate-synthetic-multi-view-data)) stores `keypoints_2d_processed` (MotionBERT-style normalisation). Inference reads that first, and models trained on it ([§3.4](#34-train)) use the default `--norm_2d none`.
+>
+> Use the released checkpoint with the published data as shown above, not with newly generated files.
+
+The published test files have no `gt_world`, so evaluating against them gives errors in normalised units rather than millimetres. To get the paper's millimetre metrics, generate the dataset from the raw data ([§3.1–3.2](#31-download-the-raw-datasets)). `gt_world` does not depend on the random camera noise, so it matches the published files frame for frame. Then point `--gt_path` at the generated files in [§3.6](#36-evaluate).
 
 ---
 

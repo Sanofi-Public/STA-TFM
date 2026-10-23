@@ -22,6 +22,12 @@ def load_splits(splits_file=SPLITS_FILE):
         return json.load(f)
 
 
+def _matches(filename, names):
+    """True if filename is `<name>_<...>.npz` for one of names (S1_2_3.npz matches S1, S10_2_3.npz does not)."""
+    stem = os.path.splitext(filename)[0]
+    return any(stem == name or stem.startswith(name + "_") for name in names)
+
+
 def split_dataset(output_dir, dataset_type, source_dirs=None, splits_file=SPLITS_FILE):
     """Split dataset into train and test sets.
 
@@ -53,7 +59,7 @@ def split_dataset(output_dir, dataset_type, source_dirs=None, splits_file=SPLITS
 
         test_names = config["test"]
         for filename in npz_files:
-            is_test = any(filename.startswith(name) for name in test_names)
+            is_test = _matches(filename, test_names)
             dst_path = os.path.join(test_dir if is_test else train_dir, filename)
             shutil.copy2(source_dir / filename, dst_path)
             test_count += is_test

@@ -266,6 +266,8 @@ def parse_args():
     ap.add_argument("--output", help="Output root; predictions go to <output>/<checkpoint_stem>/")
     ap.add_argument("--num_views_test", type=int, help="Number of active views (4, 3, 2, 1) for missing-view experiments")
     ap.add_argument("--view_drop_test", choices=["rand", "order"], help="Which views to drop when num_views_test < 4")
+    ap.add_argument("--norm_2d", choices=["none", "01", "minus1_1"],
+                    help="Extra 2D normalisation by image size; must match how the checkpoint was trained (default: none)")
     ap.add_argument("--use_gt_2d", action="store_true", default=None, help="Use keypoints_2d_gt_processed (oracle 2D)")
     ap.add_argument("--batch_size", type=int)
     ap.add_argument("--seed", type=int)

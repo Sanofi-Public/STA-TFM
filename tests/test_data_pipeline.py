@@ -65,3 +65,20 @@ def test_example_configs_match_paper_defaults():
         assert cfg["dataset_type"] == name
         assert cfg["scale"] == "local" and cfg["seed"] == 42
         assert cfg["views"] == DEFAULT_VIEWS
+
+
+def test_dhp19_subject_split(tmp_path):
+    """DHP19 subject split: test = S1, S4, S12; train = the other 14 subjects (S1 must not match S10-S17).
+    Uses empty placeholder files, so no dataset is needed."""
+    from src.data.split_dataset import load_splits, split_dataset
+    src = tmp_path / "dhp19"
+    src.mkdir()
+    for s in range(1, 18):
+        np.savez(src / f"S{s}_1_1.npz", x=np.zeros(1))
+    cfg = {**load_splits()["dhp19"], "source_dir": str(src)}
+    splits = tmp_path / "splits.json"
+    splits.write_text(json.dumps({"dhp19": cfg}))
+    split_dataset(str(tmp_path / "split"), "dhp19", splits_file=splits)
+    subjects = lambda d: sorted(p.name.split("_")[0] for p in (tmp_path / "split" / d).iterdir())
+    assert subjects("test") == ["S1", "S12", "S4"]
+    assert subjects("train") == sorted(f"S{s}" for s in range(1, 18) if s not in (1, 4, 12))
