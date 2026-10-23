@@ -220,30 +220,26 @@ DEFAULT_VIEWS = [
 
 def main():
     import argparse
-    ap = argparse.ArgumentParser(description="Generate synthetic multi-view .npz files from a 3D pose dataset")
-    ap.add_argument("--dataset", required=True, choices=["dhp19", "haa4d", "blendmimic", "totalcapture"])
-    ap.add_argument("--data_dir", required=True, help="Raw dataset dir, e.g. datasets/dhp19/raw/Vicon_data")
-    ap.add_argument("--output_dir", required=True, help="Output dir for .npz files, e.g. datasets/dhp19/synthetic")
-    ap.add_argument("--scale", default="local", choices=["local", "global"],
-                    help="Skeleton scaling. Keep 'local' to match STA-TFM")
-    ap.add_argument("--views_yaml", default=None,
-                    help="Optional YAML file with a list of view dicts overriding the default 4-camera rig")
-    ap.add_argument("--seed", type=int, default=42, help="Seed for camera/intrinsic/joint noise sampling")
-    args = ap.parse_args()
+    ap = argparse.ArgumentParser(
+        description="Generate synthetic multi-view .npz files from a 3D pose dataset. "
+                    "Settings come from --config (see conf/data_processing/); flags override the file.")
+    ap.add_argument("--config", default=None, help="YAML config, e.g. conf/data_processing/dhp19.yaml")
+    ap.add_argument("--dataset", dest="dataset_type", choices=["dhp19", "haa4d", "blendmimic", "totalcapture"])
+    ap.add_argument("--data_dir", help="Raw dataset dir, e.g. datasets/dhp19/raw/Vicon_data")
+    ap.add_argument("--output_dir", help="Output dir for .npz files, e.g. datasets/dhp19/synthetic")
+    ap.add_argument("--scale", choices=["local", "global"], help="Skeleton scaling. Keep 'local' to match STA-TFM")
+    ap.add_argument("--seed", type=int, help="Seed for camera/intrinsic/joint noise sampling")
+    args = vars(ap.parse_args())
 
-    views = DEFAULT_VIEWS
-    if args.views_yaml:
-        with open(args.views_yaml) as f:
-            views = yaml.safe_load(f)
+    config = {"scale": "local", "seed": 42, "views": DEFAULT_VIEWS}
+    if args["config"]:
+        with open(args.pop("config")) as f:
+            config.update(yaml.safe_load(f))
+    config.update({k: v for k, v in args.items() if k != "config" and v is not None})
 
-    config = {
-        "dataset_type": args.dataset,
-        "data_dir": args.data_dir,
-        "output_dir": args.output_dir,
-        "scale": args.scale,
-        "seed": args.seed,
-        "views": views,
-    }
+    missing = [k for k in ("dataset_type", "data_dir", "output_dir") if not config.get(k)]
+    if missing:
+        ap.error(f"missing {missing}: set them in --config or pass --dataset/--data_dir/--output_dir")
     DataProcessor(config).run()
 
 

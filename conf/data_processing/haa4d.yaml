@@ -1,0 +1,25 @@
+# Synthetic multi-view data generation for HAA4D (primary_classes/<action>/<action>_<idx>.npy), as used in the paper.
+#   python -m src.data.data_processing --config conf/data_processing/haa4d.yaml
+# Any command-line flag (--data_dir, --output_dir, --seed, ...) overrides the value below.
+# Relative paths are relative to the directory you run the command from (the repo root).
+
+dataset_type: haa4d                           # dhp19 | haa4d | blendmimic | totalcapture
+data_dir: datasets/haa4d/raw/primary_classes  # raw dataset, searched recursively
+output_dir: datasets/haa4d/synthetic          # one .npz per sequence is written here
+scale: local                                  # keep "local" to match STA-TFM
+seed: 42                                      # seeds all camera / intrinsic / joint noise -> identical data on every run
+
+# Camera rig: one entry per view. Noise terms are re-sampled per sequence and view.
+#   axis, angle      camera placed by rotating `angle` degrees around `axis` (x|y|z); y = circle around the subject
+#   dist             distance from the subject's root (skeletons are normalised to ~unit size)
+#   fx, fy, cx, cy   intrinsics in pixels; image size is (2*cx, 2*cy) = 3024 x 4032
+#                    (reference: https://arxiv.org/pdf/2201.10865)
+#   angle_noise      ± degrees (uniform) added to `angle`, also used as random rotation on the other two axes
+#   dist_noise       ± uniform offset added to `dist`
+#   intrinsic_noise  [± focal length, ± principal point] in pixels (uniform)
+#   joint_noise      2D Gaussian joint noise, std = U(0, joint_noise) * 2D body height in that view
+views:
+  - {axis: y, angle: 0,   dist: 5.0, fx: 2751, fy: 2751, cx: 1512, cy: 2016, angle_noise: 15, dist_noise: 4, intrinsic_noise: [50, 10], joint_noise: 0.01}
+  - {axis: y, angle: 90,  dist: 5.0, fx: 2751, fy: 2751, cx: 1512, cy: 2016, angle_noise: 15, dist_noise: 4, intrinsic_noise: [50, 10], joint_noise: 0.01}
+  - {axis: y, angle: 180, dist: 5.0, fx: 2751, fy: 2751, cx: 1512, cy: 2016, angle_noise: 15, dist_noise: 4, intrinsic_noise: [50, 10], joint_noise: 0.01}
+  - {axis: y, angle: 270, dist: 5.0, fx: 2751, fy: 2751, cx: 1512, cy: 2016, angle_noise: 15, dist_noise: 4, intrinsic_noise: [50, 10], joint_noise: 0.01}

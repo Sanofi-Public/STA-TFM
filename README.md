@@ -37,8 +37,8 @@ git clone https://github.com/Sanofi-Public/STA-TFM.git && cd STA-TFM
 bash setup_py_env.sh ./env && conda activate ./env
 
 # Synthetic multi-view data
-python -m src.data.data_processing --dataset dhp19 --data_dir datasets/dhp19/raw/Vicon_data --output_dir datasets/dhp19/synthetic
-python -m src.data.data_processing --dataset haa4d --data_dir datasets/haa4d/raw/primary_classes --output_dir datasets/haa4d/synthetic
+python -m src.data.data_processing --config conf/data_processing/dhp19.yaml
+python -m src.data.data_processing --config conf/data_processing/haa4d.yaml
 
 # Train/test splits
 python -m src.data.split_dataset --dataset union --output_dir datasets/haa4d_dhp19_union/split
@@ -135,31 +135,54 @@ unzip <path-to>/primary_classes.zip -d datasets/haa4d/raw
 
 Each 3D sequence is projected into 4 virtual cameras placed radially around the subject (0°, 90°, 180°, 270°), with random noise on the extrinsics, intrinsics and 2D joints. The output is one `.npz` file per sequence (format: [§7](#7-using-your-own-data-npz-format)).
 
+All settings live in a config file: dataset, paths, scaling, seed and the camera rig. Ready-to-use configs that reproduce the paper are in [conf/data_processing/](conf/data_processing/):
+
 ```bash
-python -m src.data.data_processing --dataset dhp19 \
-    --data_dir datasets/dhp19/raw/Vicon_data --output_dir datasets/dhp19/synthetic
-python -m src.data.data_processing --dataset haa4d \
-    --data_dir datasets/haa4d/raw/primary_classes --output_dir datasets/haa4d/synthetic
+python -m src.data.data_processing --config conf/data_processing/dhp19.yaml
+python -m src.data.data_processing --config conf/data_processing/haa4d.yaml
 ```
 
-| Argument | Description | Default |
-|---|---|---|
-| `--dataset` | `dhp19`, `haa4d`, `blendmimic`, `totalcapture` | required |
-| `--data_dir` | Raw dataset folder (searched recursively) | required |
-| `--output_dir` | Output folder for `.npz` files | required |
-| `--seed` | Seed for camera and joint noise. Generation is deterministic for a given seed. | `42` |
-| `--scale` | Skeleton scaling. Keep `local` to match STA-TFM. | `local` |
-| `--views_yaml` | YAML list of view dicts that replaces the default camera rig | paper rig |
-
-The default rig (`DEFAULT_VIEWS` in [data_processing.py](src/data/data_processing.py)) is the one used in the paper:
+Example ([conf/data_processing/dhp19.yaml](conf/data_processing/dhp19.yaml)):
 
 ```yaml
-- {axis: y, angle: 0, dist: 5.0, fx: 2751, fy: 2751, cx: 1512, cy: 2016,
-   angle_noise: 15, dist_noise: 4, intrinsic_noise: [50, 10], joint_noise: 0.01}
-# ...same for angle 90, 180, 270
+dataset_type: dhp19                       # dhp19 | haa4d | blendmimic | totalcapture
+data_dir: datasets/dhp19/raw/Vicon_data   # raw dataset, searched recursively
+output_dir: datasets/dhp19/synthetic      # one .npz per sequence is written here
+scale: local                              # keep "local" to match STA-TFM
+seed: 42                                  # seeds all camera / intrinsic / joint noise
+
+views:                                    # one entry per camera
+  - {axis: y, angle: 0,   dist: 5.0, fx: 2751, fy: 2751, cx: 1512, cy: 2016, angle_noise: 15, dist_noise: 4, intrinsic_noise: [50, 10], joint_noise: 0.01}
+  - {axis: y, angle: 90,  dist: 5.0, ...}   # second view
+  - {axis: y, angle: 180, dist: 5.0, ...}   # third view
+  - {axis: y, angle: 270, dist: 5.0, ...}   # fourth view
 ```
 
-Intrinsics reference: https://arxiv.org/pdf/2201.10865. The effective config, including the seed, is saved as `config.yaml` in `--output_dir`.
+| View field | Meaning |
+|---|---|
+| `axis`, `angle` | Camera position: rotate `angle` degrees around `axis` (`x`/`y`/`z`). With `y`, the cameras circle the subject. |
+| `dist` | Distance from the subject's root. Skeletons are normalised to roughly unit size. |
+| `fx`, `fy`, `cx`, `cy` | Intrinsics in pixels. The image size is `(2·cx, 2·cy)`, here 3024 × 4032 ([reference](https://arxiv.org/pdf/2201.10865)). |
+| `angle_noise` | ± degrees (uniform), added to `angle` and applied as a random rotation around the other two axes |
+| `dist_noise` | ± uniform offset added to `dist` |
+| `intrinsic_noise` | `[± focal length, ± principal point]` in pixels (uniform) |
+| `joint_noise` | Gaussian 2D joint noise with std = U(0, `joint_noise`) × the 2D body height in that view |
+
+Noise terms are re-sampled for every sequence and view, and are reproducible through `seed`. We recommend keeping the camera intrinsics and extrinsics at their defaults. To try another setup, for example more or fewer cameras, other distances, or no noise, copy a config and edit it.
+
+Command-line flags override the config file, so you don't have to edit it just to change paths:
+
+```bash
+python -m src.data.data_processing --config conf/data_processing/dhp19.yaml \
+    --data_dir /data/DHP19/Vicon_data --output_dir /data/dhp19_synthetic
+```
+
+| Flag | Description |
+|---|---|
+| `--config` | YAML config file |
+| `--dataset`, `--data_dir`, `--output_dir`, `--scale`, `--seed` | Override the matching config entry. Without `--config`, these flags alone are enough, and the paper's camera rig is used. |
+
+The effective config, including the seed, is saved as `config.yaml` in `--output_dir`.
 
 ### 3.3 Split into train/test
 

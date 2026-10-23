@@ -54,3 +54,14 @@ def test_split_dataset(tmp_path):
     split_dataset(str(tmp_path / "split"), "haa4d", splits_file=splits)
     assert [p.name for p in (tmp_path / "split/test").iterdir()] == ["air_guitar_001.npz"]
     assert [p.name for p in (tmp_path / "split/train").iterdir()] == ["abseiling_001.npz"]
+
+
+def test_example_configs_match_paper_defaults():
+    import yaml
+    from pathlib import Path
+    for name in ["dhp19", "haa4d"]:
+        with open(Path(__file__).resolve().parents[1] / f"conf/data_processing/{name}.yaml") as f:
+            cfg = yaml.safe_load(f)
+        assert cfg["dataset_type"] == name
+        assert cfg["scale"] == "local" and cfg["seed"] == 42
+        assert cfg["views"] == DEFAULT_VIEWS
