@@ -241,7 +241,8 @@ def main():
     ap.add_argument("--npz", required=True, help="Path to .npz file")
     ap.add_argument("--output_dir", required=True, help="Directory to save output HTML files")
     ap.add_argument("--yaml", default=str(Path(__file__).resolve().parents[2] / "conf" / "connectivities" / "default.yaml"))
-    ap.add_argument("--world_coord", default=True, help="Use gt_world (world-frame GT) instead of keypoints_3d")
+    ap.add_argument("--world_coord", default=True, type=lambda v: str(v).lower() in ("1", "true", "yes"),
+                    help="Use gt_world (world-frame GT) instead of keypoints_3d (True/False)")
     ap.add_argument("--show_raw", action="store_true", default=False,
                     help="Use raw (un-normalized) keypoints_2d / keypoints_3d instead of processed versions")
     ap.add_argument("--start", type=int, default=0, help="Start frame index")

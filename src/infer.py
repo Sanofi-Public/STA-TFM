@@ -1,5 +1,6 @@
-""" Run this script to perform inference with 2D skeletons """
-""" Match settings to the MV model"""
+""" Run this script to perform inference with 2D skeletons.
+Match settings to the MV model."""
+import argparse
 import os
 import glob
 import json
@@ -20,11 +21,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 class MultiviewInference:
     def __init__(self,
         configs = {
-            "dstformer_path": "<path-to-DSTFormer-weights>", # Path to DSTFormer weights
-            "fusion_head_ckpt": "<path-to-best-model>", # Path to STA-TFM training weights
+            "dstformer_path": str(REPO_ROOT / "weights/dstformer_weights.pth"), # Path to DSTFormer weights
             "fusion_head_ckpt": "<path-to-STA-TFM-fusion-head-weights>", # Path to STA-TFM training weights
-            "input": "<path-to-npz-folder>", # Folder with .npz files for inference
-            "output": "<output-folder-location>", # Output .npz location
+            "input": str(REPO_ROOT / "datasets/haa4d_dhp19_union/split/test"), # Folder with .npz files for inference
+            "output": str(REPO_ROOT / "results/haa4d_dhp19_union"), # Predictions are written to <output>/<checkpoint_stem>/
+            "seed": 42,  # Seed for random view dropping (view_drop_test="rand")
             "norm_2d": "none",  # Match to Model: '01' | 'none' | 'minus1_1'
             "max_length": 36,
             "stride": 12,
@@ -38,6 +39,8 @@ class MultiviewInference:
         },
     ):
         self.cfg = {**configs}
+        np.random.seed(self.cfg.get("seed", 42))
+        torch.manual_seed(self.cfg.get("seed", 42))
         self.date_str = datetime.now().strftime("%Y%m%d_%H%M")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.AMP = (self.device.type == "cuda")
@@ -254,6 +257,22 @@ class MultiviewInference:
             print(f"Throughput: {fps:.2f} frames/s") 
             print(f"Per-frame:  {spf*1000:.3f} ms/frame ({spf:.6f} s/frame)")  
 
+def parse_args():
+    defaults = MultiviewInference.__init__.__defaults__[0]
+    ap = argparse.ArgumentParser(description="Run STA-TFM inference on a folder (or single file) of multi-view 2D .npz files.")
+    ap.add_argument("--fusion_head_ckpt", required=True, help="STA-TFM checkpoint (.pth)")
+    ap.add_argument("--dstformer_path", help="Pre-trained DSTformer weights (.pth)")
+    ap.add_argument("--input", help="Folder with .npz files, or a single .npz")
+    ap.add_argument("--output", help="Output root; predictions go to <output>/<checkpoint_stem>/")
+    ap.add_argument("--num_views_test", type=int, help="Number of active views (4, 3, 2, 1) for missing-view experiments")
+    ap.add_argument("--view_drop_test", choices=["rand", "order"], help="Which views to drop when num_views_test < 4")
+    ap.add_argument("--use_gt_2d", action="store_true", default=None, help="Use keypoints_2d_gt_processed (oracle 2D)")
+    ap.add_argument("--batch_size", type=int)
+    ap.add_argument("--seed", type=int)
+    args = vars(ap.parse_args())
+    return {**defaults, **{k: v for k, v in args.items() if v is not None}}
+
+
 if __name__ == "__main__":
-    runner = MultiviewInference()
+    runner = MultiviewInference(configs=parse_args())
     runner.run()

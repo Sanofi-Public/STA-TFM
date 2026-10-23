@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the paper below."
+title: "STA-TFM: Spatio-Temporal Aggregation Across Views TransForMer for Pose Estimation"
+repository-code: "https://github.com/Sanofi-Public/STA-TFM"
+authors:
+  - {family-names: Kamel, given-names: Mena}
+  - {family-names: Won, given-names: Natalie}
+  - {family-names: Sarangi, given-names: Amrut}
+  - {family-names: Jager, given-names: Sven}
+  - {family-names: Pla Planas, given-names: Albert}
+preferred-citation:
+  type: article
+  title: "STA-TFM: Spatio-Temporal Aggregation Across Views TransForMer for Pose Estimation"
+  authors:
+    - {family-names: Kamel, given-names: Mena}
+    - {family-names: Won, given-names: Natalie}
+    - {family-names: Sarangi, given-names: Amrut}
+    - {family-names: Jager, given-names: Sven}
+    - {family-names: Pla Planas, given-names: Albert}
+  journal: "arXiv preprint arXiv:2609.24482"
+  year: 2026

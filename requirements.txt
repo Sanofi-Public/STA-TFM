@@ -1,22 +1,15 @@
+# Core dependencies: data generation, training, inference, evaluation, visualization.
+# Python >= 3.10. For the raw-video demo (MMPose) see `setup_py_env.sh --with-demo`.
 torch==2.13.0
 torchvision==0.28.0
-openmim==0.3.9
-fsspec==2026.6.0
-tqdm==4.66.1
-h5py==3.14.0
-openpyxl==3.1.5
-pytest==9.0.3
-pytest-cov==4.1.0
 numpy==1.26.4
+scipy==1.15.3
 pandas==2.2.3
+pyyaml==6.0.2
+h5py==3.14.0
+tqdm==4.66.1
 plotly==6.0.0
-boto3==1.40.0
-urllib3==2.8.0
+matplotlib==3.10.3
+opencv-python==4.11.0.86
 hydra-core==1.3.7
-python-dotenv==1.2.2
-scikit-image==0.24.0
-scikit-learn==1.6.1
 setuptools==78.1.1
-pymediainfo==7.0.1
-pre-commit
-

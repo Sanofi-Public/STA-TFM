@@ -102,7 +102,7 @@ class DataProcessor:
             subject = int(parts[0][1:])
             session = int(parts[1])
             task = int(parts[2])
-            loader = self.loader_cls(self.cfg["data_dir"])
+            loader = self.loader_cls(os.path.dirname(filepath))
             skeleton = loader.load_skeleton_data(subject, session, task)
         else: # DHP19 or Blendmimic
             loader = self.loader_cls(self.cfg["data_dir"])
@@ -203,21 +203,49 @@ class DataProcessor:
             print(f"[Error] No {self.file_ext} files found in {self.cfg['data_dir']}")
             return
 
-        for file_path in tqdm(files, desc="Sequences"):
+        if self.cfg.get("seed") is not None:
+            np.random.seed(self.cfg["seed"])
+
+        for file_path in tqdm(sorted(files), desc="Sequences"):
             self.process_single(file_path)
 
-if __name__ == "__main__":
-    config = {
-        "dataset_type": "dhp19", # Dataset name. Options: ["dhp19", "haa4d", "blendmimic", "totalcapture"]
-        "data_dir": "<path_to_dataset>", # Directory with dataset files. Example: "/home/oneai/Vicon_data"
-        "output_dir": "<path-to-STA-TFM-repo>/datasets/haa4d/synthetic", # Output directory to contain .npz files
-        "scale" : "local", # Scaling format. Options ["global", "local"]. Keep as local to match STA-TFM format.
-        "views": [
-            {"axis":"y","angle":0,   "dist":5.0,"fx":2751,"fy":2751,"cx":1512,"cy":2016, "angle_noise":15,"dist_noise":4,"intrinsic_noise":[50,10], "joint_noise":0.01},
-            {"axis":"y","angle":90,  "dist":5.0,"fx":2751,"fy":2751,"cx":1512,"cy":2016, "angle_noise":15,"dist_noise":4,"intrinsic_noise":[50,10], "joint_noise":0.01},
-            {"axis":"y","angle":180, "dist":5.0,"fx":2751,"fy":2751,"cx":1512,"cy":2016, "angle_noise":15,"dist_noise":4,"intrinsic_noise":[50,10], "joint_noise":0.01},
-            {"axis":"y","angle":270, "dist":5.0,"fx":2751,"fy":2751,"cx":1512,"cy":2016, "angle_noise":15,"dist_noise":4,"intrinsic_noise":[50,10], "joint_noise":0.01}
-        ]
-    }
+# Default synthetic camera rig used in the paper: 4 views radially distributed around the subject
+DEFAULT_VIEWS = [
+    {"axis":"y","angle":0,   "dist":5.0,"fx":2751,"fy":2751,"cx":1512,"cy":2016, "angle_noise":15,"dist_noise":4,"intrinsic_noise":[50,10], "joint_noise":0.01},
+    {"axis":"y","angle":90,  "dist":5.0,"fx":2751,"fy":2751,"cx":1512,"cy":2016, "angle_noise":15,"dist_noise":4,"intrinsic_noise":[50,10], "joint_noise":0.01},
+    {"axis":"y","angle":180, "dist":5.0,"fx":2751,"fy":2751,"cx":1512,"cy":2016, "angle_noise":15,"dist_noise":4,"intrinsic_noise":[50,10], "joint_noise":0.01},
+    {"axis":"y","angle":270, "dist":5.0,"fx":2751,"fy":2751,"cx":1512,"cy":2016, "angle_noise":15,"dist_noise":4,"intrinsic_noise":[50,10], "joint_noise":0.01},
+]
 
+
+def main():
+    import argparse
+    ap = argparse.ArgumentParser(description="Generate synthetic multi-view .npz files from a 3D pose dataset")
+    ap.add_argument("--dataset", required=True, choices=["dhp19", "haa4d", "blendmimic", "totalcapture"])
+    ap.add_argument("--data_dir", required=True, help="Raw dataset dir, e.g. datasets/dhp19/raw/Vicon_data")
+    ap.add_argument("--output_dir", required=True, help="Output dir for .npz files, e.g. datasets/dhp19/synthetic")
+    ap.add_argument("--scale", default="local", choices=["local", "global"],
+                    help="Skeleton scaling. Keep 'local' to match STA-TFM")
+    ap.add_argument("--views_yaml", default=None,
+                    help="Optional YAML file with a list of view dicts overriding the default 4-camera rig")
+    ap.add_argument("--seed", type=int, default=42, help="Seed for camera/intrinsic/joint noise sampling")
+    args = ap.parse_args()
+
+    views = DEFAULT_VIEWS
+    if args.views_yaml:
+        with open(args.views_yaml) as f:
+            views = yaml.safe_load(f)
+
+    config = {
+        "dataset_type": args.dataset,
+        "data_dir": args.data_dir,
+        "output_dir": args.output_dir,
+        "scale": args.scale,
+        "seed": args.seed,
+        "views": views,
+    }
     DataProcessor(config).run()
+
+
+if __name__ == "__main__":
+    main()

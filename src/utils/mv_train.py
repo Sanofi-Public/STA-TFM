@@ -9,7 +9,6 @@ from src.models.model_multiview import MotionBERT_MV
 from contextlib import nullcontext
 from src.utils.train_monitor import step_bar, format_mem, grad_norm
 import math
-from torch.cuda.amp import autocast, GradScaler
 
 try:
     from torch.amp import autocast as _autocast_new
@@ -218,7 +217,9 @@ def train_one_epoch(model, loader, optimizer, device, amp=True, max_grad_norm=1.
             if max_grad_norm is not None:
                 torch.nn.utils.clip_grad_norm_(params_to_clip, max_grad_norm)
             g_clipped = grad_norm(params_to_clip)
-            optimizer.step()
+            # Mirror GradScaler (AMP path above), which skips steps with non-finite gradients
+            if math.isfinite(g_clipped):
+                optimizer.step()
 
         finite_losses.append(float(loss.detach()))
         avg = sum(finite_losses) / max(1, len(finite_losses))

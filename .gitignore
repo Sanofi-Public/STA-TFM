@@ -7,7 +7,7 @@ __pycache__/
 
 checkpoints/
 weights/
-*models/
+/models/
 *.pth
 
 datasets/
@@ -32,7 +32,8 @@ mmdetection_SDRD_deprecated/
 *.pid
 *.html
 *.zip
-install.md
 
 .idea/
 sta-tfm_helper_files.zip
+
+.DS_Store

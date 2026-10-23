@@ -1,9 +1,12 @@
 ''' Run this script to train FPT (DSTformer is frozen)'''
 
+import argparse
+import random
 import torch
 import json
 import os
-import wandb
+import numpy as np
+from functools import partial
 from pathlib import Path
 from torch.amp import autocast, GradScaler
 from torch.utils.data import DataLoader, random_split
@@ -16,6 +19,12 @@ from src.utils.mv_train import build_model, select_params_for_training, train_on
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+def seed_everything(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
 def count_parameters(model):
     total = sum(p.numel() for p in model.parameters())
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -26,10 +35,11 @@ class MultiviewTrainer:
     def __init__(
         self,
         configs = {
-            "dataset_path": "<training-dataset-path>", # Path to training set with .npz files
-            "dstformer_path": "<path-to-DSTFormer-weights>", # Path to DSTFormer weights
-            "model_save_dir": "<model-save-directory>", # Output directory for model weights
-            "metrics_dir": "<metrics-directory>", # Output directory for model training metrics
+            "dataset_path": str(REPO_ROOT / "datasets/haa4d_dhp19_union/split/train"), # Path to training set with .npz files
+            "dstformer_path": str(REPO_ROOT / "weights/dstformer_weights.pth"), # Path to DSTFormer weights
+            "model_save_dir": str(REPO_ROOT / "weights/training/haa4d_dhp19_union/checkpoints"), # Output directory for model weights
+            "metrics_dir": str(REPO_ROOT / "weights/training/haa4d_dhp19_union/metrics"), # Output directory for model training metrics
+            "seed": 42,
             "resume_from": None,  # Path to your best model checkpoint to resume from
             "batch_size": 16,
             "epochs": 100,
@@ -54,6 +64,7 @@ class MultiviewTrainer:
     ):
     
         self.configs = {**configs}
+        seed_everything(self.configs["seed"])
         self.date_str = datetime.now().strftime("%Y%m%d_%H%M")
         # Check if GPU is available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -170,7 +181,7 @@ class MultiviewTrainer:
             train_ds,
             batch_size=cfg["batch_size"],
             shuffle=True,
-            collate_fn=lambda b: mv_collate_pad(b, max_views=cfg["max_views"]),
+            collate_fn=partial(mv_collate_pad, max_views=cfg["max_views"]),
             num_workers=cfg["num_workers"],
             pin_memory=self.pin
         )
@@ -179,7 +190,7 @@ class MultiviewTrainer:
             val_ds,
             batch_size=cfg["batch_size"],
             shuffle=False,
-            collate_fn=lambda b: mv_collate_pad(b, max_views=cfg["max_views"]),
+            collate_fn=partial(mv_collate_pad, max_views=cfg["max_views"]),
             num_workers=max(1, cfg["num_workers"] // 2),
             pin_memory=self.pin
         )
@@ -257,6 +268,10 @@ class MultiviewTrainer:
             eta_min=cfg["eta_min"]
         )
         
+        os.makedirs(cfg["metrics_dir"], exist_ok=True)
+        with open(os.path.join(cfg["metrics_dir"], f"{self.date_str}_config.json"), "w") as f:
+            json.dump(cfg, f, indent=2)
+
         history = {"train": [], "val": []}
         best_val = 1e9
         best_epoch = 0
@@ -297,12 +312,33 @@ class MultiviewTrainer:
                 with open(os.path.join(cfg["metrics_dir"], f"{self.date_str}_metrics.json"), "w") as f:
                     json.dump(history, f, indent=2)
             
-            print(f"BEST MODEL EPOCH: {best_epoch}")
+        except KeyboardInterrupt:
+            print("\n[INFO] Training interrupted; best checkpoint so far is kept.")
+
+        print(f"BEST MODEL EPOCH: {best_epoch} (val_mpjpe {best_val:.4f})")
+
+def parse_args():
+    defaults = MultiviewTrainer.__init__.__defaults__[0]
+    ap = argparse.ArgumentParser(description="Train the STA-TFM fusion head (DSTformer frozen by default).")
+    ap.add_argument("--dataset_path", help="Folder with training .npz files")
+    ap.add_argument("--dstformer_path", help="Pre-trained DSTformer weights (.pth)")
+    ap.add_argument("--model_save_dir", help="Output directory for checkpoints")
+    ap.add_argument("--metrics_dir", help="Output directory for metrics/config JSON")
+    ap.add_argument("--resume_from", help="Checkpoint to resume from")
+    ap.add_argument("--epochs", type=int)
+    ap.add_argument("--batch_size", type=int)
+    ap.add_argument("--lr", type=float)
+    ap.add_argument("--num_workers", type=int)
+    ap.add_argument("--seed", type=int)
+    ap.add_argument("--finetune_backbone", action="store_true", default=None, help="Also fine-tune DSTformer")
+    args = vars(ap.parse_args())
+    return {**defaults, **{k: v for k, v in args.items() if v is not None}}
+
 
 if __name__ == "__main__":
-    trainer = MultiviewTrainer()
+    trainer = MultiviewTrainer(configs=parse_args())
     print("Running with config:")
     for k, v in trainer.configs.items():
         print(f"  {k}: {v}")
-    
+
     trainer.train()
