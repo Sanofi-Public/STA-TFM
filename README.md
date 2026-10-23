@@ -75,6 +75,16 @@ conda activate ./env
 
 The script creates the environment if needed, installs `requirements.txt`, and creates the `datasets/`, `weights/` and `results/` folders.
 
+With `--with-demo`, the script builds the demo stack from source at fixed commits, so every install gets identical code:
+
+| Component | Version | Commit |
+|---|---|---|
+| MMCV | 2.2.0 | `d2111bd` |
+| MMDetection | main, with [patches/mmdet-mmcv-max-version.patch](patches/mmdet-mmcv-max-version.patch) applied | `cfd5d3a` |
+| MMPose | 1.3.2 | `759b39c` |
+
+The other demo dependencies are pinned in [requirements-demo.txt](requirements-demo.txt). The commits are set at the top of the demo section in [setup_py_env.sh](setup_py_env.sh).
+
 ### Option B — manual
 
 ```bash

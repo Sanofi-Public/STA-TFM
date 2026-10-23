@@ -1,0 +1,7 @@
+# Runtime dependencies of the raw-video demo (MMPose stack), installed by `setup_py_env.sh --with-demo`.
+# MMCV, MMDetection and MMPose themselves are built from pinned commits in that script, and
+# chumpy / xtcocotools are built from source there because they must compile against numpy 1.26.
+mmengine==0.10.7
+json-tricks==3.17.3
+munkres==3.0.0
+requests==2.34.2
