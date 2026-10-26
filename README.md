@@ -1,7 +1,12 @@
-# STA-TFM: Spatio-Temporal Aggregation Across Views TransForMer for Pose Estimation
+# STA-TFM: Spatio-Temporal Aggregation Across Views Transformer for Pose Estimation
+
+[![Sensors](https://img.shields.io/badge/Sensors-2026%2C%2026(21)%2C%206734-1f6feb.svg)](https://www.mdpi.com/1424-8220/26/21/6734)
+[![arXiv](https://img.shields.io/badge/arXiv-2609.24482-b31b1b.svg)](https://arxiv.org/abs/2609.24482)
+[![Zenodo](https://img.shields.io/badge/Zenodo-10.5281%2Fzenodo.22832620-blue)](https://doi.org/10.5281/zenodo.22832620)
+[![License: Non-Commercial](https://img.shields.io/badge/license-non--commercial-lightgrey)](LICENSE.txt)
 
 ## Overview
-Official code implementation of **STA-TFM** ([arXiv:2609.24482](https://arxiv.org/abs/2609.24482)).
+Official code implementation of **STA-TFM** ([Sensors 2026, 26(21), 6734](https://www.mdpi.com/1424-8220/26/21/6734)).
 Monocular 3D human pose estimation (HPE) remains challenging due to depth ambiguity, occlusions, and the need for temporal consistency. While multi-view methods provide superior accuracy over monocular approaches, they often require complex setups. We introduce STA-TFM, a transformer-based architecture that combines spatial and temporal information for multi-view pose estimation. The approach leverages DSTformer, a monocular feature extractor, to capture long-range pose dependencies within each view. A fusion transformer then aggregates information across views to produce coherent 3D estimates. To address training data scarcity, we use a data generation pipeline that transforms any existing 3D pose dataset into multi-view setups with controllable parameters. Experiments on various datasets demonstrate that STA-TFM outperforms existing camera-parameter-free multi-view methods. STA-TFM achieves 50.9% and 49.5% reductions in mean per joint position error (MPJPE) and mean per joint velocity error (MPJVE) on the DHP19 dataset. Furthermore, it achieves 6.7% and 7.7% respective reductions on HAA4D, and a 15.2% MPJPE reduction on TotalCapture. STA-TFM handles noisy and missing 2D inputs, supporting potential deployment in healthcare monitoring, athletic assessment, and immersive technologies.
 
 ![Graphical Abstract](figures/Graphical%20Abstract.png)
@@ -27,43 +32,23 @@ export PY_ENV_PATH="/path/to/envs/sta-tfm" # path to store Conda environment
 bash setup_py_env.sh $PY_ENV_PATH
 ```
 
-Or manually:
-
-```bash
-conda create --prefix "$PY_ENV_PATH" python=3.10 -y
-conda activate "$PY_ENV_PATH"
-```
-
-### 2. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-mkdir -p datasets/{dhp19,haa4d}
-```
-
 ---
 
 
 ### 3. Synthetic Dataset Generation from DHP19 and HAA4D datasets
 
-#### A. Downloading DHP19 dataset
-Download the DHP19 dataset from:
-https://sites.google.com/view/dhp19/download.
+#### A. Download the datasets
+- **DHP19:** download `Vicon_data.zip` from https://sites.google.com/view/dhp19/download
+- **HAA4D:** download `primary_classes.zip` from https://cse.hkust.edu.hk/haa4d/dataset/skeletons_3d/primary_classes.zip
 
-
-For STA-TFM, only the 'VICON_DATA' folder is relevant from the DHP19 dataset.
-
-#### B. Downloading HAA4D dataset
-Download the HAA4D dataset from:
-https://cse.hkust.edu.hk/haa4d/dataset/skeletons_3d/primary_classes.zip
-
-For STA-TFM, only the 'primary_classes.zip' folder is relevant from the HAA4D dataset.
-Run the following command to unzip it
-```bash 
-unzip <path-to-haa4d-dataset>/primary_classes.zip -d datasets/haa4d/raw
-# unzip <path-to-haa4d-dataset>/haa4d.zip -d datasets/haa4d/raw_new
+#### B. Unzip them into the repository
+From the repository root:
+```bash
+mkdir -p datasets/dhp19/raw datasets/haa4d/raw weights
+unzip <path-to>/Vicon_data.zip -d datasets/dhp19/raw
+unzip <path-to>/primary_classes.zip -d datasets/haa4d/raw
 ```
-This will extract the HAA4D dataset to <STA-TFM-repo-path>/datasets/haa4d/raw/primary_classes
+This gives `datasets/dhp19/raw/Vicon_data/` (DHP19 `.mat` files) and `datasets/haa4d/raw/primary_classes/` (HAA4D `.npy` files).
 
 
 #### C. Generating Synthetic Dataset 
@@ -79,9 +64,9 @@ It is recommended to leave the camera instrinsics/ extrinsics in their default v
 
 ```python
 config = {
-    "dataset_type": "dhp19", # set for DHP19
-    "data_dir": "/home/raw_data/DHP19/Vicon_data", # Update to the location where DHP19 dataset is stored
-    "output_dir": "/home/processed_data/DHP19_npz", # Desired output location
+    "dataset_type": "dhp19", # "dhp19" or "haa4d"
+    "data_dir": "datasets/dhp19/raw/Vicon_data", # haa4d: "datasets/haa4d/raw/primary_classes"
+    "output_dir": "datasets/dhp19/synthetic", # haa4d: "datasets/haa4d/synthetic"
     "scale": "local",
     "views": [
         {
@@ -150,16 +135,16 @@ The synthetic data generation pipeline produces `.npz` files with the following 
 | `keypoints_2d` | `[T, V, J, 3]` | `float32` | **Raw 2D keypoints** in pixel coordinates. Last dimension: `[x, y, confidence]` |
 | `keypoints_2d_processed` | `[T, V, J, 3]` | `float32` | **Preprocessed 2D keypoints** normalized using MotionBERT-style (aspect-ratio aware). X ∈ [-1, 1], Y ∈ [-(H/W), (H/W)]. Root-centered at (0, 0). |
 | `keypoints_3d` | `[T, J, 3]` | `float32` | **Transformed 3D keypoints** after applying `transform_skeleton()` with the configured scale (e.g., "local" or "global") |
-| `keypoints_3d_processed` | `[T, J, 3]` | `float32` | **Preprocessed 3D keypoints** root-centered and scaled by `scale_factor` (default: 1.0 for HAA4D, 500.0 for CMU) |
+| `keypoints_3d_processed` | `[T, J, 3]` | `float32` | **Preprocessed 3D keypoints** root-centered (`scale_factor` = 1.0) |
 | `view_mask` | `[T, V]` | `bool` | Boolean mask indicating which views have valid data for each frame |
 | `img_wh` | `[V, 2]` | `int64` | Image dimensions `[width, height]` for each view (e.g., `[[3024, 4032], ...]`) |
-| `cam_params` | `[V]` | `object` | List of camera parameter dicts with keys: `K` (intrinsics), `extrinsic` (4x3 [R|t]), `axis`, `angle` |
-| `gt_world` | `[T, J, 3]` | `float32` | **Original 3D skeleton** in world coordinates (before `transform_skeleton()` is applied) |
+| `cam_params` | `[V]` | `object` | List of camera parameter dicts with keys: `K` (3x3 intrinsics), `extrinsic` (3x4 [R\|t]), `axis`, `angle` |
+| `gt_world` | `[T, J, 3]` | `float32` | **Original 3D skeleton** in world coordinates (before `transform_skeleton()` is applied). Joints missing from the source dataset are NaN (e.g. `root`, `torso`, `neck`, `nose` for DHP19) |
 
 **Dimensions:**
 - **T**: Number of frames (temporal dimension)
 - **V**: Number of views/cameras (typically 4)
-- **J**: Number of joints (17 in canonical COCO format)
+- **J**: Number of joints (17, Human3.6M-style order)
   - Joint order: `root, RHip, RKnee, RAnkle, LHip, LKnee, LAnkle, torso, neck, nose, head, LShoulder, LElbow, LWrist, RShoulder, RElbow, RWrist`
 
 **Coordinate Systems:**
@@ -200,8 +185,8 @@ python -m src.data.split_dataset
 
 Configure the split in [split_dataset.py](src/data/split_dataset.py):
 ```python
-output_dir = "/path/to/output"  # Where to create train/ and test/ folders
-dataset_type = "haa4d"  # Options: "haa4d", "dhp19", or "union"
+output_dir = "datasets/haa4d_dhp19_union/split"  # Where to create train/ and test/ folders
+dataset_type = "union"  # Options: "haa4d", "dhp19", or "union"
 ```
 
 - **`haa4d`** or **`dhp19`**: Splits a single dataset using predefined splits from [dataset_splits.json](conf/dataset_splits.json)
@@ -217,11 +202,7 @@ The script copies files from source directories (specified in `dataset_splits.js
 
 Download the pre-trained DSTFormer weights (feature extraction network) from Zenodo (https://zenodo.org/records/22832620):
 - **File:** `dstformer_weights.pth`
-- **Location:** Store in `weights/` directory
-
-> **Note:** Ensure all model weights are stored under the `datasets/` directory.
-
-
+- **Location:** `weights/dstformer_weights.pth`
 
 #### B. Configure Training Paths
 
@@ -229,15 +210,10 @@ Update the following paths in `src/train.py`:
 
 ```python
 "dataset_path": str(REPO_ROOT / "datasets/haa4d_dhp19_union/split/train"), # Path to training set with .npz files
-"dstformer_path": str(REPO_ROOT / "weights/sta-tfm-paper/dstformer_weights.pth"), # Path to DSTFormer weights
+"dstformer_path": str(REPO_ROOT / "weights/dstformer_weights.pth"), # Path to DSTFormer weights
 "model_save_dir": str(REPO_ROOT / "weights/training/haa4d_dhp19_union/checkpoints"), # Output directory for model weights
 "metrics_dir": str(REPO_ROOT / "weights/training/haa4d_dhp19_union/metrics"), # Output directory for model training metrics
 ```
-
-**Optional - Weights & Biases Logging:**
-- Set `"use_wandb": True` in the config
-- Export your API key: `export WANDB_API_KEY=your_api_key`
-
 
 #### C. Run Training
 
@@ -248,7 +224,9 @@ python -m src.train
 
 **Headless training (background process with logging):**
 ```bash
-TQDM_DISABLE=1 python -m src.train > output.log 2>&1 & echo $! > script.pid
+# Progress bar is written to the log at most every 300 s; adjust TQDM_MININTERVAL as needed
+TQDM_MININTERVAL=300 python -u -m src.train > output.log 2>&1 & echo $! > script.pid
+tail -f output.log
 ```
 
 **Monitor/control background process:**
@@ -286,11 +264,13 @@ STA-TFM inference requires a folder with .npz files containing 2D poses from eac
 Update paths in `src/infer.py`:
 
 ```python
-"dstformer_path": str(REPO_ROOT / "weights/sta-tfm-paper/dstformer_weights.pth"), # Path to DSTFormer weights
+"dstformer_path": str(REPO_ROOT / "weights/dstformer_weights.pth"), # Path to DSTFormer weights
 "fusion_head_ckpt": "<path-to-best-model>", # Path to STA-TFM training weights
 "input": str(REPO_ROOT / "datasets/haa4d_dhp19_union/split/test"), # Folder with .npz files for inference
-"output":  str(REPO_ROOT / "datasets/haa4d_dhp19_union/results/"), # Output .npz location
+"output":  str(REPO_ROOT / "datasets/haa4d_dhp19_union/results/"), # Predictions are written to <output>/<checkpoint_stem>/
 ```
+
+> **Note:** When using the released Zenodo checkpoint with the Zenodo example data, set `"norm_2d": "01"` in `src/infer.py`. With the default (`"none"`) the model receives raw pixel coordinates and predictions will be wrong.
 
 #### B. Run Inference
 
@@ -302,14 +282,13 @@ python -m src.infer
 
 ### 7. Visualize Inference Results
 
-Use `evaluate.py` (see [§3C](#c-generating-synthetic-dataset) for the full argument reference). Since inference `.npz` files contain `pred_3d`, the script produces two HTML files per sample: a raw comparison and a Procrustes-aligned comparison.
+Use `plot.py` (see [§3C](#c-generating-synthetic-dataset) for the full argument reference). Since inference `.npz` files contain `pred_3d`, the script produces two HTML files per sample: a raw comparison and a Procrustes-aligned comparison.
 
 ```bash
-cd src/eval
-python evaluate.py \
+python -m src.eval.plot \
     --npz <path-to-inference-results.npz> \
     --output_dir <output-directory> \
-    --world_coord True
+    --max_frames 200
 ```
 
 Use `video_overlay.py` to generate a synchronized side-by-side comparisons of 2D joint overlays on videos and 3D skeleton predictions.
@@ -344,9 +323,9 @@ python -m src.eval.evaluate \
 **Example:**
 ```bash
 python -m src.eval.evaluate \
-    --pred_path   /home/sta-tfm-helpers/results/haa4d/test \
-    --gt_path     /home/sta-tfm-helpers/datasets/haa4d/split/test \
-    --output_path /home/sta-tfm-helpers/results/haa4d/eval \
+    --pred_path   datasets/haa4d_dhp19_union/results/<checkpoint_stem> \
+    --gt_path     datasets/haa4d_dhp19_union/split/test \
+    --output_path datasets/haa4d_dhp19_union/results/eval \
     --dataset     haa4d
 ```
 
@@ -397,7 +376,7 @@ python -m src.demo.demo \
         /home/BlendMimic3D/S1/Videos/WalkCircle_1.mp4 \
         /home/BlendMimic3D/S1/Videos/WalkCircle_3.mp4 \
         /home/BlendMimic3D/S1/Videos/WalkCircle_2.mp4 \
-    --dstformer_path  checkpoints/DSTFormer_weights/dstformer_weights.pth \
+    --dstformer_path  weights/dstformer_weights.pth \
     --fusion_head_ckpt /home/sta-tfm-helpers/20260316_2052_mv_fusion_head_best.pth \
     --output_dir  /home/sta-tfm-helpers/demo
 ```
@@ -452,8 +431,12 @@ If you find this work useful, please cite:
 ```bibtex
 @article{kamel2026statfm,
   title={STA-TFM: Spatio-Temporal Aggregation Across Views TransForMer for Pose Estimation},
-  author={Kamel, Mena and Won, Natalie and Sarangi, Amrut and Jager, Sven and Pla Planas, Albert},
-  journal={arXiv preprint arXiv:2609.24482},
-  year={2026}
+  author={Kamel, Mena and Won, Natalie and Sarangi, Amrut and Jager, Sven and Planas, Albert Pla},
+  journal={Sensors},
+  volume={26},
+  number={21},
+  pages={6734},
+  year={2026},
+  doi={10.3390/s26216734}
 }
 ```

@@ -16,6 +16,12 @@ def load_splits():
         return json.load(f)
 
 
+def matches_name(filename, names):
+    """True if filename is `<name>.npz` or `<name>_*.npz` (so S1 does not match S10)."""
+    stem = os.path.splitext(filename)[0]
+    return any(stem == name or stem.startswith(name + "_") for name in names)
+
+
 def split_dataset(output_dir, dataset_type):
     """Split dataset into train and test sets."""
     dataset_splits = load_splits()
@@ -43,7 +49,7 @@ def split_dataset(output_dir, dataset_type):
         
         for filename in npz_files:
             src_path = os.path.join(source_dir, filename)
-            is_test = any(filename.startswith(name) for name in test_names)
+            is_test = matches_name(filename, test_names)
             dst_path = os.path.join(test_dir if is_test else train_dir, filename)
             shutil.copy2(src_path, dst_path)
             test_count += is_test
@@ -56,7 +62,7 @@ def split_dataset(output_dir, dataset_type):
 
 if __name__ == "__main__":
     # Configuration
-    output_dir = "<path-to-output-split-dataset>"  # Output directory for split dataset
+    output_dir = "datasets/haa4d_dhp19_union/split"  # Output directory for split dataset
     dataset_type = "union"  # Options: "haa4d", "dhp19", or "union"
     
     split_dataset(output_dir, dataset_type)
