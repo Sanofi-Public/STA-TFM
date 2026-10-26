@@ -203,15 +203,17 @@ class DataProcessor:
             print(f"[Error] No {self.file_ext} files found in {self.cfg['data_dir']}")
             return
 
-        for file_path in tqdm(files, desc="Sequences"):
+        np.random.seed(self.cfg.get("seed", 42))
+        for file_path in tqdm(sorted(files), desc="Sequences"):
             self.process_single(file_path)
 
 if __name__ == "__main__":
     config = {
         "dataset_type": "dhp19", # Dataset name. Options: ["dhp19", "haa4d", "blendmimic", "totalcapture"]
-        "data_dir": "<path_to_dataset>", # Directory with dataset files. Example: "/home/oneai/Vicon_data"
-        "output_dir": "<path-to-STA-TFM-repo>/datasets/haa4d/synthetic", # Output directory to contain .npz files
+        "data_dir": "datasets/dhp19/raw/Vicon_data", # haa4d: "datasets/haa4d/raw/primary_classes"
+        "output_dir": "datasets/dhp19/synthetic", # haa4d: "datasets/haa4d/synthetic"
         "scale" : "local", # Scaling format. Options ["global", "local"]. Keep as local to match STA-TFM format.
+        "seed": 42, # Seed for camera/intrinsic/joint noise sampling
         "views": [
             {"axis":"y","angle":0,   "dist":5.0,"fx":2751,"fy":2751,"cx":1512,"cy":2016, "angle_noise":15,"dist_noise":4,"intrinsic_noise":[50,10], "joint_noise":0.01},
             {"axis":"y","angle":90,  "dist":5.0,"fx":2751,"fy":2751,"cx":1512,"cy":2016, "angle_noise":15,"dist_noise":4,"intrinsic_noise":[50,10], "joint_noise":0.01},
