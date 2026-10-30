@@ -218,7 +218,9 @@ def train_one_epoch(model, loader, optimizer, device, amp=True, max_grad_norm=1.
             if max_grad_norm is not None:
                 torch.nn.utils.clip_grad_norm_(params_to_clip, max_grad_norm)
             g_clipped = grad_norm(params_to_clip)
-            optimizer.step()
+            # Mirror GradScaler, which skips steps with non-finite gradients
+            if math.isfinite(g_clipped):
+                optimizer.step()
 
         finite_losses.append(float(loss.detach()))
         avg = sum(finite_losses) / max(1, len(finite_losses))

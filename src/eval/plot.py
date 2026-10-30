@@ -6,7 +6,11 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import yaml
+from tqdm import tqdm
 from src.utils.mv_losses import Inference_Loss
+
+def str_to_bool(value):
+    return str(value).lower() in ("1", "true", "yes")
 
 def load_npz(path: str, world=False, show_raw=False):
     data = np.load(path, allow_pickle=True)
@@ -142,8 +146,8 @@ def build_frames(preds, gt, joint_names, connectivities, color_pred="blue", colo
     if preds is not None: all_xyz.append(preds.reshape(-1,3))
     if gt is not None:    all_xyz.append(gt.reshape(-1,3))
     all_xyz = np.concatenate(all_xyz, axis=0)
-    xmin, ymin, zmin = np.min(all_xyz, axis=0)
-    xmax, ymax, zmax = np.max(all_xyz, axis=0)
+    xmin, ymin, zmin = np.nanmin(all_xyz, axis=0)
+    xmax, ymax, zmax = np.nanmax(all_xyz, axis=0)
     pad = 0.05 * max(xmax - xmin, ymax - ymin, zmax - zmin)
     xmin, ymin, zmin = xmin - pad, ymin - pad, zmin - pad
     xmax, ymax, zmax = xmax + pad, ymax + pad, zmax + pad
@@ -193,7 +197,7 @@ def build_frames(preds, gt, joint_names, connectivities, color_pred="blue", colo
             fig.add_trace(tr)
 
     # Animation frames
-    fig.frames = [go.Frame(data=build_trace_list(t), name=str(t)) for t in range(T)]
+    fig.frames = [go.Frame(data=build_trace_list(t), name=str(t)) for t in tqdm(range(T), desc="Building frames")]
 
     # Layout
     fig.update_layout(
@@ -241,7 +245,7 @@ def main():
     ap.add_argument("--npz", required=True, help="Path to .npz file")
     ap.add_argument("--output_dir", required=True, help="Directory to save output HTML files")
     ap.add_argument("--yaml", default=str(Path(__file__).resolve().parents[2] / "conf" / "connectivities" / "default.yaml"))
-    ap.add_argument("--world_coord", default=True, help="Use gt_world (world-frame GT) instead of keypoints_3d")
+    ap.add_argument("--world_coord", default=False, type=str_to_bool, help="Use gt_world (world-frame GT) instead of keypoints_3d (True/False)")
     ap.add_argument("--show_raw", action="store_true", default=False,
                     help="Use raw (un-normalized) keypoints_2d / keypoints_3d instead of processed versions")
     ap.add_argument("--start", type=int, default=0, help="Start frame index")

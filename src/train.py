@@ -3,7 +3,6 @@
 import torch
 import json
 import os
-import wandb
 from pathlib import Path
 from torch.amp import autocast, GradScaler
 from torch.utils.data import DataLoader, random_split
@@ -26,14 +25,14 @@ class MultiviewTrainer:
     def __init__(
         self,
         configs = {
-            "dataset_path": "<training-dataset-path>", # Path to training set with .npz files
-            "dstformer_path": "<path-to-DSTFormer-weights>", # Path to DSTFormer weights
-            "model_save_dir": "<model-save-directory>", # Output directory for model weights
-            "metrics_dir": "<metrics-directory>", # Output directory for model training metrics
+            "dataset_path": str(REPO_ROOT / "datasets/haa4d_dhp19_union/split/train"), # Path to training set with .npz files
+            "dstformer_path": str(REPO_ROOT / "weights/dstformer_weights.pth"), # Path to DSTFormer weights
+            "model_save_dir": str(REPO_ROOT / "weights/training/haa4d_dhp19_union/checkpoints"), # Output directory for model weights
+            "metrics_dir": str(REPO_ROOT / "weights/training/haa4d_dhp19_union/metrics"), # Output directory for model training metrics
             "resume_from": None,  # Path to your best model checkpoint to resume from
             "batch_size": 16,
-            "epochs": 100,
-            "val_ratio": 0.1,
+            "epochs": 5,
+            "val_ratio": 0.2,
             "max_length": 36,
             "stride": 12,
             "num_joints": 17,
@@ -42,18 +41,21 @@ class MultiviewTrainer:
             "fusion_depth": 12,
             "fusion_mlp": 3.0,
             "max_views": 4,
-            "lr": 1e-3,
+            "lr": 1e-4,
             "eta_min": 1e-5,
-            "scheduler_Tmax": 10,
+            "scheduler_Tmax": 30,
             "weight_decay": 1e-4,
             "loss_lambda": 1.0,
             "num_workers": 4,
             "finetune_backbone": False,
-            "view_dropout": 0.1,
+            "view_dropout": 0.25,
+            "seed": 42,
+            "save_every": 0,  # Also save a checkpoint every N epochs (0 = only keep the best model)
         },
     ):
     
         self.configs = {**configs}
+        torch.manual_seed(self.configs["seed"])
         self.date_str = datetime.now().strftime("%Y%m%d_%H%M")
         # Check if GPU is available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -279,25 +281,33 @@ class MultiviewTrainer:
                 if val["mpjpe"] < best_val:
                     best_epoch = ep
                     best_val = val["mpjpe"]
-                    os.makedirs(cfg["model_save_dir"], exist_ok=True)
-                    save_path = os.path.join(cfg["model_save_dir"],
-                                             f"{self.date_str}_mv_fusion_head_best.pth")
-                    torch.save({
-                        "backbone": model.backbone.state_dict(),
-                        "proj": model.proj.state_dict(),
-                        "fusion": model.fusion.state_dict(),
-                        "head_3d": model.head_3d.state_dict(),
-                        "feat_dim": feat_dim,
-                        "num_joints": cfg["num_joints"],
-                    }, save_path)
+                    self.save_checkpoint(model, feat_dim, "best")
+
+                if cfg["save_every"] and ep % cfg["save_every"] == 0:
+                    self.save_checkpoint(model, feat_dim, f"ep{ep:03d}")
                     
                 history["train"].append(tr)
                 history["val"].append(val)
                 os.makedirs(cfg["metrics_dir"], exist_ok=True)
                 with open(os.path.join(cfg["metrics_dir"], f"{self.date_str}_metrics.json"), "w") as f:
                     json.dump(history, f, indent=2)
-            
-            print(f"BEST MODEL EPOCH: {best_epoch}")
+        except KeyboardInterrupt:
+            print("\n[INFO] Training interrupted; best checkpoint so far is kept.")
+
+        print(f"BEST MODEL EPOCH: {best_epoch}")
+
+    def save_checkpoint(self, model, feat_dim, tag):
+        cfg = self.configs
+        os.makedirs(cfg["model_save_dir"], exist_ok=True)
+        save_path = os.path.join(cfg["model_save_dir"], f"{self.date_str}_mv_fusion_head_{tag}.pth")
+        torch.save({
+            "backbone": model.backbone.state_dict(),
+            "proj": model.proj.state_dict(),
+            "fusion": model.fusion.state_dict(),
+            "head_3d": model.head_3d.state_dict(),
+            "feat_dim": feat_dim,
+            "num_joints": cfg["num_joints"],
+        }, save_path)
 
 if __name__ == "__main__":
     trainer = MultiviewTrainer()

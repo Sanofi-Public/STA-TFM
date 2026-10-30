@@ -20,11 +20,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 class MultiviewInference:
     def __init__(self,
         configs = {
-            "dstformer_path": "<path-to-DSTFormer-weights>", # Path to DSTFormer weights
-            "fusion_head_ckpt": "<path-to-best-model>", # Path to STA-TFM training weights
-            "fusion_head_ckpt": "<path-to-STA-TFM-fusion-head-weights>", # Path to STA-TFM training weights
-            "input": "<path-to-npz-folder>", # Folder with .npz files for inference
-            "output": "<output-folder-location>", # Output .npz location
+            "dstformer_path": str(REPO_ROOT / "weights/dstformer_weights.pth"), # Path to DSTFormer weights
+            "fusion_head_ckpt": "<path-to-sta-tfm-checkpoint>", # Path to STA-TFM training weights, e.g. weights/training/haa4d_dhp19_union/checkpoints/<date>_mv_fusion_head_best.pth
+            "input": str(REPO_ROOT / "datasets/haa4d_dhp19_union/split/test"), # Folder with .npz files for inference
+            "output": str(REPO_ROOT / "datasets/haa4d_dhp19_union/results/"), # Output .npz location
             "norm_2d": "none",  # Match to Model: '01' | 'none' | 'minus1_1'
             "max_length": 36,
             "stride": 12,
@@ -35,9 +34,11 @@ class MultiviewInference:
             "num_views_test":4,  # set to 3 or 2 to test fewer views
             "view_drop_test": "rand", # Set to rand or order
             "use_gt_2d": False,  # If True, use keypoints_2d_gt_processed (preprocessed GT) instead of keypoints_2d (MMPose predictions)
+            "seed": 42,  # Seed for random view dropping (view_drop_test="rand")
         },
     ):
         self.cfg = {**configs}
+        np.random.seed(self.cfg["seed"])
         self.date_str = datetime.now().strftime("%Y%m%d_%H%M")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.AMP = (self.device.type == "cuda")
